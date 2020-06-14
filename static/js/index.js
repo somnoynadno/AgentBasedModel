@@ -10,6 +10,13 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+function factorial(num) {
+    let rval = 1;
+    for (let i = 2; i <= num; i++)
+        rval = rval * i;
+    return rval;
+}
+
 class Agent {
   constructor(id) {
     this.id = id;
@@ -90,7 +97,7 @@ class ConsumerAgent extends Agent {
       this.hasWork = true;
       queue--;
 
-      console.log(this._getID() + "Беру работу на время " + this.workTime + " минут");
+      if (DEBUG) console.log(this._getID() + "Беру работу на время " + this.workTime + " минут");
     }
     // иначе чиллим
   }
@@ -105,13 +112,34 @@ class ConsumerAgent extends Agent {
 const DEBUG = false;
 const SLEEP_TIME = 2500;
 const ERV_COEF = 30;
-const CONSUMERS_NUM = Math.ceil(Math.random() * 8);
+const CONSUMERS_NUM = Math.ceil(Math.random() * 5) + 1;
 const WORK_DELAY = 1;
-const PRODUCTION_DELAY = 1 / (CONSUMERS_NUM * 2);
+const PRODUCTION_DELAY = WORK_DELAY * (CONSUMERS_NUM - 1.9);
 
 // окружение
 let queue = 0;
 let agents = [];
+
+function matStat() {
+  let p = PRODUCTION_DELAY / WORK_DELAY;
+
+  let p0 = 0;
+  for (let k = 0; k <= CONSUMERS_NUM; k++) {
+    p0 += (Math.pow(p, k) / factorial(k)) + (Math.pow(p, CONSUMERS_NUM + 1) / (factorial(CONSUMERS_NUM) * (CONSUMERS_NUM - p)));
+  }
+
+  p0 = Math.pow(p0, -1);
+  if (DEBUG) console.log(p0);
+
+  let log = '';
+  for (let k = 0; k < CONSUMERS_NUM; k++) {
+    let pk = (Math.pow(p, k) / factorial(k)) * p0;
+    if (DEBUG) console.log(k, pk);
+    log += k + ": " + pk.toFixed(4) + "<br>";
+  }
+
+  document.getElementById("distribution").innerHTML = log;
+}
 
 async function main() {
   let p = new ProducerAgent(0);
@@ -128,6 +156,9 @@ async function main() {
   if (DEBUG) console.log("Production delay: " + PRODUCTION_DELAY);
 
   document.getElementById("consumers").innerHTML = CONSUMERS_NUM;
+
+  // считаем теоретическое распределение
+  matStat();
 
   let T = 0;
   while (true) {
@@ -157,7 +188,7 @@ async function main() {
     }
 
     if (DEBUG) console.log("Следующее событие через " + minT + " минут");
-
+    
     document.getElementById("log").innerHTML = log;
     document.getElementById("next-event").innerHTML = minT;
 
